@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ecomos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ecomos
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecomos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://ecomos:${POSTGRES_PASSWORD:-change-me}@db:5432/ecomos?schema=public
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      SESSION_SECRET: ${SESSION_SECRET:?set a 32+ character SESSION_SECRET}
+      SECRETS_KEY: ${SECRETS_KEY:?set a 32+ character SECRETS_KEY}
+      CRON_SECRET: ${CRON_SECRET:-}
+      SPAPI_CLIENT_ID: ${SPAPI_CLIENT_ID:-}
+      SPAPI_CLIENT_SECRET: ${SPAPI_CLIENT_SECRET:-}
+      STORAGE_ROOT: /data
+    volumes:
+      - appdata:/data
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  appdata:
